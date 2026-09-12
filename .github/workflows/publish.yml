@@ -37,8 +37,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install npm for trusted publishing
-        run: npm install -g npm@11.5.2
       - name: Install dependencies
         run: bun install
       - name: Run tests
@@ -46,4 +44,4 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
       - name: Publish to NPM (OIDC Trusted Publishing)
-        run: npm stage publish --provenance --access public
+        run: npx -y npm@11.19.1 stage publish --provenance --access public

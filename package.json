@@ -1,9 +1,13 @@
 {
   "name": "@taqlyn/nav-expo-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taqlyn/nav-expo-router.git"
   },
   "description": "Optional Expo Router helpers for Taqlyn deferred links (ready-gate bootstrap only — no Match logic)",
   "type": "module",
