@@ -5,6 +5,7 @@ import {
   navigateDeferredLink,
   createTaqlynLinking,
   nativeIntentRedirect,
+  createTaqlynNativeIntentHandler,
   TaqlynPendingHref,
   subscribeWarmLinks,
 } from './index'
@@ -53,6 +54,30 @@ describe('nav-expo-router', () => {
         prefixes: ['https://go.example.com'],
       }),
     ).toBeNull()
+  })
+
+  test('createTaqlynNativeIntentHandler expands via injected resolveIncomingUrl', async () => {
+    const handler = createTaqlynNativeIntentHandler({
+      prefixes: ['https://go.example.com'],
+      fallbackPath: '/',
+      resolveIncomingUrl: async () => ({ href: '/offer?sku=1' }),
+    })
+    await expect(
+      handler({ path: 'https://go.example.com/Ab12Cd' }),
+    ).resolves.toBe('/offer?sku=1')
+  })
+
+  test('createTaqlynNativeIntentHandler uses fallback on expand failure', async () => {
+    const handler = createTaqlynNativeIntentHandler({
+      prefixes: ['https://go.example.com'],
+      fallbackPath: '/home',
+      resolveIncomingUrl: async () => {
+        throw new Error('network')
+      },
+    })
+    await expect(
+      handler({ path: 'https://go.example.com/Ab12Cd' }),
+    ).resolves.toBe('/home')
   })
 
   test('TaqlynPendingHref holds until ready', () => {

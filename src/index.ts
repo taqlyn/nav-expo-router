@@ -93,6 +93,77 @@ export function nativeIntentRedirect(
   return `${path}${parsed.search}`
 }
 
+export type NativeIntentResolveFn = (
+  url: string,
+) => Promise<{ href: string; pendingExpand?: boolean } | null>
+
+export interface TaqlynNativeIntentOptions {
+  prefixes: Array<string | RegExp>
+  /** Optional default backstack/home when expand fails (Gap 1). */
+  fallbackPath?: string
+  /**
+   * Inject SdkCore `resolveIncomingUrl` (or equivalent). When omitted, path-map only.
+   * Keeps Match/HTTP out of this nav package.
+   */
+  resolveIncomingUrl?: NativeIntentResolveFn
+  mapPath?: (pathname: string, search: string) => string | null
+  /** Map expanded / path-mapped href before returning to Expo Router. */
+  mapToRoute?: (href: string, originalPath: string) => string
+}
+
+function hostMatches(url: string, prefixes: Array<string | RegExp>): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    return false
+  }
+  const hrefBase = `${parsed.protocol}//${parsed.host}`
+  return prefixes.some((p) => {
+    if (typeof p === 'string') {
+      return url.startsWith(p) || hrefBase.startsWith(p)
+    }
+    return p.test(parsed.hostname)
+  })
+}
+
+/**
+ * Factory for Expo Router `redirectSystemPath` (Detour-style resolve mode).
+ * Export as `redirectSystemPath` from `app/+native-intent.tsx`.
+ */
+export function createTaqlynNativeIntentHandler(
+  options: TaqlynNativeIntentOptions,
+): (args: { path: string }) => string | Promise<string> {
+  const fallback = options.fallbackPath?.trim() || '/'
+  return async ({ path }) => {
+    const url = path
+    if (!hostMatches(url, options.prefixes)) {
+      return url
+    }
+    let href: string | null = null
+    if (options.resolveIncomingUrl) {
+      try {
+        const resolved = await options.resolveIncomingUrl(url)
+        href = resolved?.href ?? null
+      } catch {
+        href = fallback
+      }
+      if (!href) href = fallback
+    } else {
+      const stringPrefixes = options.prefixes.filter((p): p is string => typeof p === 'string')
+      href =
+        nativeIntentRedirect(url, {
+          prefixes: stringPrefixes,
+          mapPath: options.mapPath,
+        }) ?? fallback
+    }
+    if (options.mapToRoute) {
+      return options.mapToRoute(href, url)
+    }
+    return href
+  }
+}
+
 /** Holds one pending href until the router is ready (auth / splash). */
 export class TaqlynPendingHref {
   href: string | null = null
